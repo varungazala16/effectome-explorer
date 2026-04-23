@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}EffectomeExplorer — Proximity Biology Research Tool{% endblock %}
+
+{% block extra_head %}
+<style>
+  .hero {
+    min-height: calc(100vh - 61px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -10%, rgba(0,212,255,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .hero-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .hero-eyebrow::before,
+  .hero-eyebrow::after {
+    content: ''; flex: 1; max-width: 40px;
+    height: 1px; background: var(--accent); opacity: 0.4;
+  }
+
+  h1 {
+    font-size: clamp(32px, 5vw, 54px);
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    max-width: 680px;
+    margin-bottom: 20px;
+  }
+
+  h1 .grad {
+    background: linear-gradient(90deg, var(--accent) 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 520px;
+    margin-bottom: 44px;
+    line-height: 1.7;
+  }
+
+  .search-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 560px;
+    text-align: left;
+  }
+
+  .search-label {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .examples {
+    margin-top: 18px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    align-items: center;
+  }
+
+  .examples-label {
+    font-size: 11px; color: var(--muted); margin-right: 2px;
+  }
+
+  .example-chip {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px; font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+  }
+  .example-chip:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(0,212,255,0.05);
+  }
+
+  /* Feature pills */
+  .features {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    justify-content: center;
+    margin-top: 52px;
+    max-width: 700px;
+  }
+
+  .feature-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 8px 18px;
+    font-size: 12px; color: var(--muted);
+  }
+
+  .feature-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* Concept section */
+  .concepts {
+    margin-top: 80px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 800px;
+    text-align: left;
+  }
+
+  .concept-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .concept-card .icon {
+    font-size: 22px; margin-bottom: 10px;
+  }
+
+  .concept-card h3 {
+    font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text);
+  }
+
+  .concept-card p {
+    font-size: 12px; color: var(--muted); line-height: 1.6;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-eyebrow">Induced Proximity Research</div>
+
+  <h1>Map the <span class="grad">Effectome</span><br>of any protein target</h1>
+
+  <p class="hero-sub">
+    Enter a gene name to instantly visualize its interaction network,
+    identify E3 ligases, DUBs and other proximity-relevant effectors,
+    and surface the latest proximity medicine literature.
+  </p>
+
+  <div class="search-card">
+    <div class="search-label">Search a human protein</div>
+    <form action="/explore" method="get">
+      <div class="search-row">
+        <input
+          class="search-input mono"
+          type="text"
+          name="gene"
+          placeholder="e.g. KRAS, TP53, BRD4, MYC …"
+          autocomplete="off"
+          autofocus
+        />
+        <button class="btn btn-primary" type="submit">Explore &rarr;</button>
+      </div>
+    </form>
+    <div class="examples">
+      <span class="examples-label">Try:</span>
+      <button class="example-chip" onclick="fillSearch('KRAS')">KRAS</button>
+      <button class="example-chip" onclick="fillSearch('TP53')">TP53</button>
+      <button class="example-chip" onclick="fillSearch('BRD4')">BRD4</button>
+      <button class="example-chip" onclick="fillSearch('MYC')">MYC</button>
+      <button class="example-chip" onclick="fillSearch('EGFR')">EGFR</button>
+      <button class="example-chip" onclick="fillSearch('BCL2')">BCL2</button>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature-pill">
+      <span class="dot" style="background:var(--e3)"></span>
+      E3 Ligase identification
+    </div>
+    <div class="feature-pill">
+      <span class="dot" style="background:var(--dub)"></span>
+      DUB mapping
+    </div>
+    <div class="feature-pill">
+      <span class="dot" style="background:var(--accent)"></span>
+      Proximity potential score
+    </div>
+    <div class="feature-pill">
+      <span class="dot" style="background:var(--kin)"></span>
+      Interactive network graph
+    </div>
+    <div class="feature-pill">
+      <span class="dot" style="background:var(--chap)"></span>
+      Proximity literature mining
+    </div>
+  </div>
+
+  <div class="concepts">
+    <div class="concept-card">
+      <div class="icon">⚡</div>
+      <h3>What is induced proximity?</h3>
+      <p>Small bifunctional molecules bring two proteins into close proximity, enabling one to modify the other — through degradation, activation, or re-localization.</p>
+    </div>
+    <div class="concept-card">
+      <div class="icon">🔗</div>
+      <h3>What is the effectome?</h3>
+      <p>The full set of effector proteins capable of modulating a disease target via proximity events. Mapping it is the first step in proximity drug discovery.</p>
+    </div>
+    <div class="concept-card">
+      <div class="icon">🎯</div>
+      <h3>Why undruggable targets?</h3>
+      <p>~85% of the proteome lacks a binding pocket for conventional drugs. Proximity-based approaches bypass this by co-opting the cell's own machinery.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  function fillSearch(gene) {
+    document.querySelector('.search-input').value = gene;
+    document.querySelector('form').submit();
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}EffectomeExplorer{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #08090f;
+      --surface:  #0f1117;
+      --card:     #141720;
+      --border:   #1e2233;
+      --accent:   #00d4ff;
+      --accent2:  #7c3aed;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --success:  #10b981;
+
+      --e3:    #f59e0b;
+      --dub:   #8b5cf6;
+      --kin:   #3b82f6;
+      --chap:  #ec4899;
+      --other: #4b5563;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #fff;
+    }
+
+    .nav-logo .logo-text {
+      font-size: 15px; font-weight: 600; color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .nav-logo .logo-sub {
+      font-size: 11px; color: var(--muted); font-weight: 400;
+    }
+
+    .nav-badge {
+      font-size: 11px;
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.25);
+      color: var(--accent);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── Utility ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    .tag {
+      display: inline-flex; align-items: center;
+      font-size: 11px; font-weight: 600;
+      padding: 2px 9px; border-radius: 4px;
+      letter-spacing: 0.4px; text-transform: uppercase;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 500;
+      padding: 4px 12px; border-radius: 20px;
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Search bar (shared) ── */
+    .search-row {
+      display: flex; gap: 8px;
+    }
+
+    .search-input {
+      flex: 1;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+
+    .btn {
+      padding: 12px 22px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0097b2);
+      color: #000;
+    }
+    .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 80px;
+      border-top: 1px solid var(--border);
+      padding: 24px 32px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-logo">
+      <div class="logo-icon">E</div>
+      <div>
+        <div class="logo-text">EffectomeExplorer</div>
+        <div class="logo-sub">Proximity Biology Research Tool</div>
+      </div>
+    </a>
+    <span class="nav-badge">&#x25CF; Powered by STRING · UniProt · PubMed</span>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <footer>
+    Built for <a href="https://www.generalproximity.bio" target="_blank">General Proximity</a> &mdash;
+    pioneering the next generation of induced-proximity medicines.
+    Data from <a href="https://string-db.org" target="_blank">STRING</a>,
+    <a href="https://www.uniprot.org" target="_blank">UniProt</a>,
+    <a href="https://pubmed.ncbi.nlm.nih.gov" target="_blank">PubMed</a>.
+  </footer>
+</body>
+</html>

@@ -1,0 +1,564 @@
+{% extends "base.html" %}
+{% block title %}{{ gene }} Effectome — EffectomeExplorer{% endblock %}
+
+{% block extra_head %}
+<script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+<link href="https://unpkg.com/vis-network@9.1.9/dist/dist/vis-network.min.css" rel="stylesheet" />
+<style>
+  .results-wrap {
+    padding: 32px 24px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .top-bar-left { display: flex; flex-direction: column; gap: 8px; }
+
+  .breadcrumb {
+    font-size: 12px; color: var(--muted);
+  }
+  .breadcrumb a { color: var(--accent); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+
+  .page-title {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+
+  .page-title h1 {
+    font-size: 30px; font-weight: 700;
+    letter-spacing: -0.8px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+  }
+
+  .uniprot-link {
+    font-size: 11px; color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px 9px;
+    text-decoration: none; font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+  }
+  .uniprot-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  .protein-full-name {
+    font-size: 14px; color: var(--muted); margin-top: 2px;
+  }
+
+  /* ── Mini search bar ── */
+  .mini-search { display: flex; gap: 8px; }
+  .mini-search .search-input { width: 220px; padding: 9px 14px; font-size: 13px; }
+  .mini-search .btn { padding: 9px 16px; font-size: 13px; }
+
+  /* ── Score widget ── */
+  .score-widget {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    display: flex; align-items: center; gap: 20px;
+    min-width: 220px;
+  }
+
+  .score-ring-wrap { position: relative; width: 70px; height: 70px; flex-shrink: 0; }
+
+  .score-ring {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: conic-gradient({{ score_color }} {{ score }}%, #1e2233 {{ score }}%);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  .score-ring::before {
+    content: '';
+    position: absolute;
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: var(--card);
+  }
+
+  .score-number {
+    position: absolute;
+    font-size: 16px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    z-index: 1;
+  }
+
+  .score-info { display: flex; flex-direction: column; gap: 4px; }
+  .score-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .score-label { font-size: 18px; font-weight: 700; color: {{ score_color }}; }
+  .score-desc { font-size: 11px; color: var(--muted); }
+
+  /* ── Grid layout ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .card-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .card-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  .card-body { padding: 20px; }
+
+  /* ── Network ── */
+  #network-container {
+    width: 100%; height: 420px;
+    background: var(--bg);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--muted);
+  }
+
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Sidebar ── */
+  .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+  .protein-card .card-body p {
+    font-size: 13px; color: var(--muted); line-height: 1.65;
+  }
+
+  .disease-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .disease-tag {
+    font-size: 11px; color: #fbbf24;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 4px; padding: 2px 8px;
+  }
+
+  /* Effector breakdown bars */
+  .eff-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .eff-row { display: flex; flex-direction: column; gap: 4px; }
+
+  .eff-label-row {
+    display: flex; justify-content: space-between;
+    font-size: 12px;
+  }
+
+  .eff-bar-track {
+    height: 5px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+
+  .eff-bar-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  /* ── Interaction table ── */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 1;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td { padding: 10px 16px; }
+
+  .gene-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500; color: var(--text);
+  }
+
+  .gene-cell a {
+    color: inherit; text-decoration: none;
+    transition: color 0.15s;
+  }
+  .gene-cell a:hover { color: var(--accent); }
+
+  .class-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 500;
+    padding: 2px 10px; border-radius: 4px;
+  }
+
+  .score-bar-cell { display: flex; align-items: center; gap: 10px; }
+
+  .score-bar-track {
+    flex: 1; max-width: 80px; height: 4px;
+    background: var(--border); border-radius: 2px; overflow: hidden;
+  }
+
+  .score-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+  /* ── Literature ── */
+  .paper-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .paper-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    transition: border-color 0.15s;
+  }
+  .paper-card:hover { border-color: rgba(0,212,255,0.3); }
+
+  .paper-title {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    text-decoration: none; line-height: 1.5; display: block;
+  }
+  .paper-title:hover { color: var(--accent); }
+
+  .paper-meta {
+    margin-top: 6px; font-size: 11px; color: var(--muted);
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+
+  /* ── Not found ── */
+  .not-found {
+    text-align: center; padding: 80px 24px;
+  }
+  .not-found h2 { font-size: 22px; font-weight: 600; margin-bottom: 12px; }
+  .not-found p { color: var(--muted); margin-bottom: 24px; }
+
+  /* ── Section spacing ── */
+  .section { margin-top: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="results-wrap">
+
+  {% if not_found %}
+  <div class="not-found">
+    <h2>Gene not found: <span class="mono" style="color:var(--accent)">{{ gene }}</span></h2>
+    <p>No data found in STRING or UniProt for this identifier. Try a HGNC gene symbol like KRAS, TP53, or BRD4.</p>
+    <a href="/" class="btn btn-primary">&#8592; New search</a>
+  </div>
+
+  {% else %}
+
+  <!-- ── Top bar ── -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="breadcrumb">
+        <a href="/">Home</a> &rsaquo; Effectome &rsaquo; {{ gene }}
+      </div>
+      <div class="page-title">
+        <h1>{{ gene }}</h1>
+        {% if uniprot_id %}
+        <a class="uniprot-link"
+           href="https://www.uniprot.org/uniprotkb/{{ uniprot_id }}"
+           target="_blank">UniProt: {{ uniprot_id }}</a>
+        {% endif %}
+      </div>
+      {% if protein_name != gene %}
+      <div class="protein-full-name">{{ protein_name }}</div>
+      {% endif %}
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+      <!-- Mini search -->
+      <form action="/explore" method="get" class="mini-search">
+        <input class="search-input mono" type="text" name="gene" placeholder="Search another gene…" />
+        <button class="btn btn-primary" type="submit">Go</button>
+      </form>
+
+      <!-- Proximity score -->
+      <div class="score-widget">
+        <div class="score-ring-wrap">
+          <div class="score-ring">
+            <span class="score-number">{{ score }}</span>
+          </div>
+        </div>
+        <div class="score-info">
+          <div class="score-title">Proximity Potential</div>
+          <div class="score-label">{{ score_label }}</div>
+          <div class="score-desc">
+            {{ score_breakdown.get('E3 Ligase', 0) }} E3 &bull;
+            {{ score_breakdown.get('Deubiquitylase (DUB)', 0) }} DUB &bull;
+            {{ score_breakdown.get('high_confidence', 0) }} high-conf
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main grid: Network + Sidebar ── -->
+  <div class="main-grid">
+
+    <!-- Network card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><span class="dot"></span>Interaction Network</span>
+        <span style="font-size:11px;color:var(--muted)">{{ interactions|length }} interactors &bull; STRING DB</span>
+      </div>
+      <div id="network-container"></div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--accent)"></div> Target
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--e3)"></div> E3 Ligase
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--dub)"></div> DUB
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--kin)"></div> Kinase
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--chap)"></div> Chaperone
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--other)"></div> Other
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Protein info -->
+      <div class="card protein-card">
+        <div class="card-header">
+          <span class="card-title"><span class="dot"></span>Protein</span>
+        </div>
+        <div class="card-body">
+          {% if protein_function %}
+          <p>{{ protein_function }}{% if protein_function|length >= 500 %}…{% endif %}</p>
+          {% else %}
+          <p style="color:var(--muted);font-style:italic">No function annotation available.</p>
+          {% endif %}
+          {% if diseases %}
+          <div class="disease-tags">
+            {% for d in diseases %}
+            <span class="disease-tag">{{ d }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Effector breakdown -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><span class="dot"></span>Effector Breakdown</span>
+          <span style="font-size:11px;color:var(--muted)">{{ interactions|length }} total</span>
+        </div>
+        <div class="card-body">
+          <div class="eff-list">
+            {% set total = interactions|length if interactions|length > 0 else 1 %}
+            {% for class_name, color in effector_colors.items() %}
+            {% set cnt = effector_counts[class_name] %}
+            <div class="eff-row">
+              <div class="eff-label-row">
+                <span style="color:{{ color }};font-weight:500;font-size:12px">{{ class_name }}</span>
+                <span style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px">{{ cnt }}</span>
+              </div>
+              <div class="eff-bar-track">
+                <div class="eff-bar-fill"
+                     style="width:{{ (cnt / total * 100)|int }}%;background:{{ color }}"></div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Interaction table ── -->
+  <div class="card section">
+    <div class="card-header">
+      <span class="card-title"><span class="dot"></span>Effector Proteins</span>
+      <span style="font-size:11px;color:var(--muted)">Ranked by STRING combined score</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Gene</th>
+            <th>Effector Class</th>
+            <th>Combined Score</th>
+            <th>Experimental</th>
+            <th>Text Mining</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ix in interactions %}
+          <tr>
+            <td style="color:var(--muted);font-family:'JetBrains Mono',monospace">{{ loop.index }}</td>
+            <td class="gene-cell">
+              <a href="/explore/{{ ix.gene }}" title="Explore {{ ix.gene }}">{{ ix.gene }}</a>
+            </td>
+            <td>
+              <span class="class-tag"
+                style="background:{{ ix.color }}18;color:{{ ix.color }};border:1px solid {{ ix.color }}30">
+                {{ ix.effector_class }}
+              </span>
+            </td>
+            <td>
+              <div class="score-bar-cell">
+                <span class="mono" style="font-size:12px;min-width:32px">{{ ix.score_pct }}%</span>
+                <div class="score-bar-track">
+                  <div class="score-bar-fill" style="width:{{ ix.score_pct }}%"></div>
+                </div>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-family:'JetBrains Mono',monospace">
+              {{ (ix.escore * 100)|int }}%
+            </td>
+            <td style="color:var(--muted);font-family:'JetBrains Mono',monospace">
+              {{ (ix.tscore * 100)|int }}%
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Literature ── -->
+  {% if papers %}
+  <div class="card section">
+    <div class="card-header">
+      <span class="card-title"><span class="dot"></span>Proximity Medicine Literature</span>
+      <span style="font-size:11px;color:var(--muted)">PubMed &mdash; PROTAC · degrader · proximity</span>
+    </div>
+    <div class="card-body">
+      <div class="paper-list">
+        {% for p in papers %}
+        <div class="paper-card">
+          <a class="paper-title" href="{{ p.url }}" target="_blank">{{ p.title }}</a>
+          <div class="paper-meta">
+            <span>{{ p.authors }}</span>
+            {% if p.journal %}<span style="color:var(--accent)">{{ p.journal }}</span>{% endif %}
+            {% if p.year %}<span>{{ p.year }}</span>{% endif %}
+            <a href="{{ p.url }}" target="_blank"
+               style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px">
+              PMID {{ p.pmid }} ↗
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% endif %}{# end not_found #}
+</div>
+
+<script>
+(function () {
+  const raw = {{ network_data | safe }};
+  if (!raw.nodes.length) return;
+
+  const GROUP_COLORS = {
+    'target':                  { background: '#00d4ff', border: '#ffffff', highlight: { background: '#33ddff', border: '#ffffff' } },
+    'E3 Ligase':               { background: '#f59e0b', border: '#d97706', highlight: { background: '#fbbf24', border: '#d97706' } },
+    'Deubiquitylase (DUB)':    { background: '#8b5cf6', border: '#7c3aed', highlight: { background: '#a78bfa', border: '#7c3aed' } },
+    'Kinase':                  { background: '#3b82f6', border: '#2563eb', highlight: { background: '#60a5fa', border: '#2563eb' } },
+    'Chaperone':               { background: '#ec4899', border: '#db2777', highlight: { background: '#f472b6', border: '#db2777' } },
+    'Other Interactor':        { background: '#374151', border: '#4b5563', highlight: { background: '#4b5563', border: '#6b7280' } },
+  };
+
+  const nodes = new vis.DataSet(raw.nodes.map(n => ({
+    id: n.id,
+    label: n.label,
+    title: n.title,
+    color: GROUP_COLORS[n.group] || GROUP_COLORS['Other Interactor'],
+    size: n.value,
+    font: { color: '#e2e8f0', face: 'Inter', size: n.group === 'target' ? 14 : 11 },
+    borderWidth: n.group === 'target' ? 3 : 1.5,
+    shadow: n.group === 'target' ? { enabled: true, color: 'rgba(0,212,255,0.4)', size: 12 } : false,
+  })));
+
+  const edges = new vis.DataSet(raw.edges.map(e => ({
+    from: e.from, to: e.to,
+    title: e.title,
+    width: 0.5 + e.value * 2,
+    color: { color: '#1e2233', highlight: '#00d4ff', hover: '#00d4ff', opacity: 0.6 },
+    smooth: { type: 'continuous' },
+    hoverWidth: 2,
+  })));
+
+  const container = document.getElementById('network-container');
+  const network = new vis.Network(container, { nodes, edges }, {
+    physics: {
+      stabilization: { iterations: 150 },
+      barnesHut: { gravitationalConstant: -4000, springConstant: 0.001, springLength: 180 },
+    },
+    interaction: { hover: true, tooltipDelay: 80, zoomView: true },
+    layout: { improvedLayout: true },
+  });
+
+  // Click node → navigate to explore page
+  network.on('click', function (params) {
+    if (params.nodes.length > 0) {
+      const nodeId = params.nodes[0];
+      const node = nodes.get(nodeId);
+      if (node && node.label && node.label !== '{{ gene }}') {
+        window.location.href = '/explore/' + node.label;
+      }
+    }
+  });
+
+  network.on('hoverNode', () => { container.style.cursor = 'pointer'; });
+  network.on('blurNode', () => { container.style.cursor = 'default'; });
+})();
+</script>
+{% endblock %}
